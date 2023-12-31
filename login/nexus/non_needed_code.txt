@@ -1,0 +1,173 @@
+-------------------------------------------- from views.py
+class Stream_receiver:
+    def __init__(self,Stream=True,topic='',host="127.0.0.1",port=1883):
+        self.i=0
+    def process_frames(self):
+            video=cv2.VideoCapture(0)
+            while True : 
+                    rec,self.frame=video.read() 
+                    print('helo')       
+                    if rec:
+                        # Perform object detection using YOLOv8
+                        # results = model(self.frame)
+                        results1 = model1(self.frame)
+                        self.processed=True               
+                        # Get the first (and only) result
+                        # r = results[0]
+                        r1=results1[0]            
+                        # Get the bounding boxes for the detected objects
+                        # boxes = r.boxes #for objects
+                        boxes1=r1.boxes # for faces               
+
+                        count=len(boxes1)
+                        print('------------------',count)
+                        print('------------------',len(boxes1) <= 1 )
+                        if len(boxes1) == 1 :                    
+                            for box1 in boxes1:
+                                bbox=[int(i) for i in box1.xyxy[0]]
+                                # color=(255,255,0)
+                                
+                                self.i,label,text1,color=test(self.i,self.frame,bbox,device_id=0)
+                                
+                                print(self.i)
+                                # Draw the bounding box on the image
+                                cv2.rectangle(self.frame, (bbox[0], bbox[1]), (bbox[2], bbox[3] ), color, 2)  
+                                cv2.putText(self.frame, text1+'--'+str(self.i), (bbox[0], bbox[1] - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+                                ret, jpeg = cv2.imencode('.jpg', self.frame)
+                                yield (b'--frame\r\n'
+                                    b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n\r\n')
+                                
+                        else:
+                            
+                            img=cv2.imread('./static/images/warming.jpg')
+                                # Display the image with the detected objects= 
+                            ret, jpeg = cv2.imencode('.jpg', img)
+                            
+                            yield (b'--frame\r\n'
+                                        b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n\r\n')
+                            
+                            self.i = 0
+                    else :
+                         video.release()
+                         break
+                         
+
+                    
+Stream = Stream_receiver(topic='test')
+def stream(request):
+        return StreamingHttpResponse(Stream.process_frames(), content_type='multipart/x-mixed-replace; boundary=frame')
+
+----------------------------------------------------------------------------
+
+# class Recognize():
+#     def __init__(self,Stream=False,topic='',host="127.0.0.1",port=1883):
+#         self.i=0
+#         self.Strame=Stream
+#         self.processed=True
+#         self.topic=topic
+#         self.frame=None  # empty variable to store latest message received       
+#         self.client = mqtt.Client(client_id='client_1')  # Create instance of client 
+
+#         self.client.on_connect = self.on_connect  # Define callback function for successful connection
+#         self.client.message_callback_add(self.topic,self.on_message)        
+#         self.client.connect(host,port)  # connecting to the broking server
+
+#         t=threading.Thread(target=self.subscribe)      # make a thread to loop for subscribing  
+#         t.start()
+#     def subscribe(self):
+#         self.client.loop_start() # Start networking daemon   
+#     def on_connect(self,client, userdata, flags, rc):  # The callback for when the client connects to the broker
+#         client.subscribe(self.topic)  # Subscribe to the topic, receive any messages published on it
+#         print("Subscring to topic :",self.topic)
+#     def on_message(self,client, userdata, msg):
+#         nparr = np.frombuffer(msg.payload, np.uint8)
+#         self.frame = cv2.imdecode(nparr,  cv2.IMREAD_COLOR) 
+#         self.processed=False 
+#     def process_frames(self):
+#         while True:
+#             if self.frame is not None and  not self.processed:
+#                 # Perform object detection using YOLOv8
+#                 if not self.processed:
+#                     # results = model(self.frame)
+#                     results1 = model1(self.frame)
+#                     self.processed=True               
+#                 # Get the first (and only) result
+#                 # r = results[0]
+#                 r1=results1[0]            
+#                 # Get the bounding boxes for the detected objects
+#                 # boxes = r.boxes #for objects
+#                 boxes1=r1.boxes # for faces               
+
+#                 count=len(boxes1)
+#                 print('------------------',count)
+#                 print('------------------',len(boxes1) <= 1 )
+#                 if len(boxes1) <= 1 :                    
+#                     for box1 in boxes1:
+#                         bbox=[int(i) for i in box1.xyxy[0]]
+#                         # color=(255,255,0)
+                        
+#                         self.i,label,text1,color=test(self.i,self.frame,bbox,device_id=0)
+                        
+#                         print(self.i)
+#                         # Draw the bounding box on the image
+#                         cv2.rectangle(self.frame, (bbox[0], bbox[1]), (bbox[2], bbox[3] ), color, 2)  
+#                         cv2.putText(self.frame, text1+'--'+str(self.i), (bbox[0], bbox[1] - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+                        
+#                         if self.i==30 :
+#                             self.i = 0
+#                             data = {
+#                                 'message':'welcome'
+#                             }
+
+#                             # Serialize the data to a JSON string
+#                             json_payload = json.dumps(data)
+#                             self.client.publish('result',json_payload)
+
+#                             return
+
+
+#                             pass
+                             
+#                         ret, jpeg = cv2.imencode('.jpg', self.frame)
+#                         yield (b'--frame\r\n'
+#                                     b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n\r\n')
+
+#                 else:                   
+#                     self.i = 0
+#                     img=cv2.imread('./static/images/warming.jpg')
+#                                 # Display the image with the detected objects= 
+#                     ret, jpeg = cv2.imencode('.jpg', img)
+                            
+#                     yield (b'--frame\r\n'
+#                                         b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n\r\n')
+#                     data = {
+#                                 'message':'only_one_person_per_image' 
+#                             }
+
+#                      # Serialize the data to a JSON string
+#                     json_payload = json.dumps(data)
+#                     self.client.publish('result',json_payload)
+
+# re=Recognize(topic='test',host='0.tcp.eu.ngrok.io',port=14730 )
+
+
+-------------------------------------------------------------
+def room(request, pk):
+    room = None
+    for i in rooms:
+        if i['id'] == int(pk):
+            room = i['name']
+    
+    # Query the VoltageData from the database
+    voltage_data = VoltageData.objects.all()
+    
+    # Extract the timestamp and voltage values
+    x = [data.timestamp for data in voltage_data]
+    y = [data.voltage for data in voltage_data]
+    
+    # Create the plot
+    plot = px.line(x=x, y=y)
+    chart = plot.to_html()
+    
+    context = {'room': room,'x':x,'y':y ,'chart': chart}
+    return render(request, 'AI/Room.html', context)
